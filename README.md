@@ -23,13 +23,20 @@ For Raspberry Pi 3B+ and 4.
 
 ## Install
 
-Use one of the RaspberryPi OS versions:
+Use one of the RaspberryPi OS versions for 32 bit:
 
 Kernel Version | Link
 ---------------|-----
 5.10.92        | https://downloads.raspberrypi.org/raspios_lite_armhf/images/raspios_lite_armhf-2022-01-28/
 5.4.51         | https://downloads.raspberrypi.org/raspios_lite_armhf/images/raspios_lite_armhf-2020-08-24/
 4.19.97        | https://downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-2020-02-14/
+
+
+For 64 bit, use this version:
+
+Kernel Version | Link
+---------------|-----
+5.10.92	       | https://downloads.raspberrypi.org/raspios_lite_arm64/images/raspios_lite_arm64-2022-01-28/
 
 Run the [install script](install.sh) on Raspberry Pi:
 
