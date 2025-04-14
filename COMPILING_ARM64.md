@@ -147,7 +147,11 @@ Let's clone the repo:
 - Make nexmon_csi: `make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- install-firmware`
 
 ### makecsiparams compilation
-Navigate to `nexmon_csi/utils/makecsiparams` and call `make` and (if wished) `make install`
+Navigate to `nexmon_csi/utils/makecsiparams`.
+Before we compile, we have to modify the Makefile to not dynamically link but rather statically link
+the required libraries by adding `-static` in the compliation step for `makecsiparams`.
+Then call `make` and (if wished) `make install`
+
 
 ### nexutil compilation
 Navigate to `nexmon/utilities/nexutil` and call `make` and (if wished) `make install`
