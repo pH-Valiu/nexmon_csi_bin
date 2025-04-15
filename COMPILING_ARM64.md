@@ -207,7 +207,7 @@ sed -i '111s/^#//' $(CSI_PATH)/Makefile
 # Crazy GPT code for including dmi.o into each driver Makefile
 echo "Patching driver Makefiles to include dmi.o if needed..."
 
-for dir in nexmon_csi/brcmfmac_*; do
+for dir in $(CSI_PATH)/brcmfmac_*; do
     if [ -d "$dir" ]; then
         echo "Checking $dir..."
         MAKEFILE="$dir/Makefile"
