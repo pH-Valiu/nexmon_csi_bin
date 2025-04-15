@@ -49,7 +49,7 @@ apt-get -y install git libgmp3-dev gawk qpdf bison flex make autoconf libtool te
 These libraries are requirements as specified in the nexmon README.
 During my testing, I found the following libraries to be requirements as well:
 ```sh
-apt-get libssl-dev bc xxd python2
+apt-get libssl-dev bc xxd python2 libncurses5-dev
 ```
 
 ### Installing Kernel Headers
@@ -94,12 +94,15 @@ chmod +x /usr/local/bin/rpi-source
 rpi-source
 ```
 
-This command will likely fail. If it fails during the step of `make modules_prepare`, use the following commands:
+This command might fail. If it fails during the step of `make modules_prepare`, use the following commands:
 ```sh
 make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- bcm2711_defconfig
 make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- modules_prepare
 ```
 If prompted with a terminal config menu set all values to default.
+The script might try to compile the whole kernel. This should not be necessary, I think.
+The reason we include the kernel source files is to have the compilation pipeline ready to later compile
+the `brcmfmac.ko` driver.
 
 Now, check if the sym-link has already been automatically created:
 ```sh
@@ -131,20 +134,49 @@ ln -s /usr/lib/arm-linux-gnueabihf/libmpfr.so.6.1.0 /usr/lib/arm-linux-gnueabihf
 ### nexmon_csi compilation
 Let's clone the repo:
 `git clone https://github.com/seemoo-lab/nexmon.git`
+Let's also directly clone the nexmon_csi repo:
+```sh
+cd nexmon/patches/bcm43455c0/7_45_189/
+
+git clone https://github.com/seemoo-lab/nexmon_csi.git
+```
+
+Now you can either manually make all the following changes and then call the `make` command in the nexmon_csi directory.
+Or, you call the provided shell commands which can be found at the bottom. 
+That script might fail though, when nexmon and nexmon_csi get updated, so doing it manually and checking whether the changes are even required is the safer way.
 
 - Navigate into it: `cd nexmon`
-- Open `nexmon/buildtools/b43-v3/debug/b43-beautifier` and change `#!/usr/bin/env python` to `#!/usr/bin/env python2`
+- Open `nexmon/buildtools/b43-v3/debug/b43-beautifier` and change:
+	- `#!/usr/bin/env python` to `#!/usr/bin/env python2`
+- Move back: `cd nexmon`
+- Open `setup_env.sh` and change:
+	- `ARCH=arm` to `ARCH=arm64`
+	- `SUBARCH=arm` to `SUBARCH=arm64`
+	- `KERNEL=kernel7` to `KERNEL=kernel8`
+- Open `firmwares/bcm43455c0/7_45_189/definitions.mk` and change:
+	- `NEXMON_ARCH=armv7l-r` to `NEXMON_ARCH=armv8-a`
 - Move back: `cd nexmon`
 - Setup the build environment: `source setup_env.sh`
 - Compile some build tools and extract the ucode and flashpatches from the original firmware files: `make`
 - Move to: `cd patches/bcm43455c0/7_45_189`
 - Clone nexmon_csi repo: `git clone https://github.com/seemoo-lab/nexmon_csi.git`
-- Open `nexmon_csi/Makefile`, navigate to line 114 and remove the clause checking for `arm6l, arm7l` architecture. (Remove lines: 117, 116, 115, 102)
-- Open `nexmon_csi/Makefile`, navigate to line 340 and remove the clause checking for `arm6l, arm7l` architecture. (Remove lines: 337, 336, 335, 319 (I already took into account the prior deletion))
+- Open `nexmon_csi/Makefile` and change:
+	- at line _102_: add `aarch64` to the clause checking for valid `uname -m` versions
+	- at line _111_: remove the '#' to have a log in case sth goes bad
+	- at line _323_: add `aarch64` to the clause checking for valid `uname -m`versions
 - Depending on which kernel version you are, you will either use one of the existing driver packages in `nexmon_csi` directory, or you will have to copy the specific driver package from `nexmon/patches/driver` into `nexmon_csi`. If you choose to use one from `nexmon/patches/driver`, you will have to modify `nexmon_csi/Makefile` further (Should be a straightforward task). Either way, you will have a driver directory you want to use.
-- Move into it. e.g. `cd brcmfmac_5.10.y-nexmon`
+- Move into it. e.g. `cd brcmfmac_5.10.y-nexmon` (or your kernel version specific folder)
 - Open `Makefile` and add `dmi.o` to the `brcmfmac-objs list`, if not already there. If `dmi.c` does not exist in your drivers directory, then don't add this line.
-- Make nexmon_csi: `make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- install-firmware`
+- Make nexmon_csi: `make ARCH=arm64 install-firmware`
+
+Alternative immediate shell commands:
+```sh
+
+```
+Now call make inside the nexmon_csi directory:
+```sh
+make ARCH=arm64 install-firmware
+```
 
 ### makecsiparams compilation
 Navigate to `nexmon_csi/utils/makecsiparams`.
