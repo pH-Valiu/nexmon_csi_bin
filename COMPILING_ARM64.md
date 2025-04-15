@@ -142,9 +142,10 @@ git clone https://github.com/seemoo-lab/nexmon_csi.git
 ```
 
 Now you can either manually make all the following changes and then call the `make` command in the nexmon_csi directory.
-Or, you call the provided shell commands which can be found at the bottom. 
+Or, you call the provided shell commands which can be found at the bottom while being inside `nexmon` directory.
 That script might fail though, when nexmon and nexmon_csi get updated, so doing it manually and checking whether the changes are even required is the safer way.
 
+#### Manually:
 - Navigate into it: `cd nexmon`
 - Open `nexmon/buildtools/b43-v3/debug/b43-beautifier` and change:
 	- `#!/usr/bin/env python` to `#!/usr/bin/env python2`
@@ -159,7 +160,6 @@ That script might fail though, when nexmon and nexmon_csi get updated, so doing 
 - Setup the build environment: `source setup_env.sh`
 - Compile some build tools and extract the ucode and flashpatches from the original firmware files: `make`
 - Move to: `cd patches/bcm43455c0/7_45_189`
-- Clone nexmon_csi repo: `git clone https://github.com/seemoo-lab/nexmon_csi.git`
 - Open `nexmon_csi/Makefile` and change:
 	- at line _102_: add `aarch64` to the clause checking for valid `uname -m` versions
 	- at line _111_: remove the '#' to have a log in case sth goes bad
@@ -169,8 +169,65 @@ That script might fail though, when nexmon and nexmon_csi get updated, so doing 
 - Open `Makefile` and add `dmi.o` to the `brcmfmac-objs list`, if not already there. If `dmi.c` does not exist in your drivers directory, then don't add this line.
 - Make nexmon_csi: `make ARCH=arm64 install-firmware`
 
-Alternative immediate shell commands:
+#### Alternative immediate shell commands:
 ```sh
+#!/bin/bash
+echo "Fixing python shebang for b43-beautifier..."
+sed -i '1s|#!/usr/bin/env python|#!/usr/bin/env python2|' buildtools/b43-v3/debug/b43-beautifier
+
+echo "Updating setup_env.sh for arm64..."
+sed -i 's/ARCH=arm/ARCH=arm64/' setup_env.sh
+sed -i 's/SUBARCH=arm/SUBARCH=arm64/' setup_env.sh
+sed -i 's/KERNEL=kernel7/KERNEL=kernel8/' setup_env.sh
+
+echo "Updating definitions.mk for armv8-a..."
+sed -i 's/NEXMON_ARCH=armv7l-r/NEXMON_ARCH=armv8-a/' firmwares/bcm43455c0/7_45_189/definitions.mk
+
+echo "Sourcing build environment..."
+source setup_env.sh
+
+echo "Running make to build tools and extract firmware..."
+make
+
+CSI_PATH="patches/bcm43455c0/7_45_189/nexmon_csi"
+
+# Add aarch64 to uname -m checks (line 102 and 323) but only if not there yet. Use GPT to decipher this awk statement if needed.
+awk '
+{
+    if ($0 ~ /filter\([^)]*armv6l[ ]+armv7l[^)]*\)/ && $0 !~ /aarch64/) {
+        sub(/(armv6l[ ]+armv7l)/, "& aarch64")
+    }
+    print
+}' $(CSI_PATH)/Makefile > $(CSI_PATH)/Makefile.tmp && mv $(CSI_PATH)/Makefile.tmp $(CSI_PATH)/Makefile
+
+
+# Uncomment logging line at line 111
+sed -i '111s/^#//' $(CSI_PATH)/Makefile
+
+# Crazy GPT code for including dmi.o into each driver Makefile
+echo "Patching driver Makefiles to include dmi.o if needed..."
+
+for dir in nexmon_csi/brcmfmac_*; do
+    if [ -d "$dir" ]; then
+        echo "Checking $dir..."
+        MAKEFILE="$dir/Makefile"
+        DMIC="$dir/dmi.c"
+        
+        if [ -f "$DMIC" ]; then
+            echo "  - dmi.c exists. Checking if dmi.o is already included..."
+
+            if ! grep -q 'dmi.o' "$MAKEFILE"; then
+                echo "  - Adding dmi.o to brcmfmac-objs..."
+                # Insert just before the closing backslash line if there is one
+                sed -i '/brcmfmac-objs += \\/a\	dmi.o \\' "$MAKEFILE"
+            else
+                echo "  - dmi.o already included. Skipping."
+            fi
+        else
+            echo "  - dmi.c not found. Skipping dmi.o addition."
+        fi
+    fi
+done
 
 ```
 Now call make inside the nexmon_csi directory:
@@ -194,4 +251,5 @@ We need:
 - `nexutil`: --> `nexmon/utilities/nexutil/nexutil`
 - `brcmfmac43455-sdio.bin`: --> `nexmon_csi/brcmfmac43455-sdio.bin`
 - `brcmfmac.ko`: --> `nexmon_csi/brcmfmac_YOUR_VERSION.y-nexmon/brcmfmac.ko`
+
 
