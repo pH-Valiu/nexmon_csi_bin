@@ -1,7 +1,10 @@
 # Making your own compiled binaries for nexmon_csi on ARM64
+Our idea is to precompile the software on a RPI4 testing board so we can export it if for future uses.
+
+For this, we need to do the compilation on the EXACT SAME kernel version where we want to deploy to in the future. 
 
 ## Supported kernels
-Supported kernels according to nexmon_csi:
+Supported kernels according to [nexmon_csi](https://github.com/seemoo-lab/nexmon_csi#bcm43455c0):
 
 Kernel | 
 -------|
@@ -9,20 +12,24 @@ Kernel |
 5.4    |
 5.10   |
 
-Supported kernels for base nexmon patches, therefore it might also be possible to compile nexmon_csi for those version:
+If we look deep inside the nexmon and nexmon_csi repository we find a bigger range of theoretically supported kernels based on the available _base nexmon patches_ in [the driver folder](https://github.com/seemoo-lab/nexmon/tree/master/patches/driver).
+Therefore, it might also be possible to compile nexmon_csi for those version (4.14, 4.19, 4.4, 4.9, 5.10, 5.15, 5.4, 6.1, 6.2, 6.6).
 
-Kernel | Link
--------|-----
-4.9    |
-4.14   |
-4.19   |
-5.4    |
-5.10   | https://downloads.raspberrypi.org/raspios_lite_arm64/images/raspios_lite_arm64-2022-01-28/
-5.15   |
+## Getting Started
+To get started, first flash a RPI4 with the kernel version you want to compile for.
 
-In general, whenever you want to start compiling, I recommend starting with a fresh new rpi image.
-Images can be found under this link:
+In the following, you can find links to the RaspberryPi OS 64 bit Images for different kernel versions:
+
+Kernel 		| Link
+----------------|-----
+5.4.51-v8+ 	| https://downloads.raspberrypi.org/raspios_lite_arm64/images/raspios_lite_arm64-2020-08-24/
+5.10.92-v8+   	| https://downloads.raspberrypi.org/raspios_lite_arm64/images/raspios_lite_arm64-2022-01-28/		(<< only tested with this one)
+5.15.61-v8+ 	| https://downloads.raspberrypi.org/raspios_lite_arm64/images/raspios_lite_arm64-2022-09-07/
+
+More images can be found under this link:
 `https://downloads.raspberrypi.org/raspios_lite_arm64/images/`
+
+Don't forget to modify `config.txt` in the boot folder of the SD-Card and set `arm_64bit=1` to enable the 64 bit version of the kernel.
 
 ## Prerequesites
 After you have flashed the rpi with the image, add `enable_uart=1` to the `config.txt` 
@@ -54,7 +61,8 @@ apt-get libssl-dev bc xxd python2 libncurses5-dev
 
 ### Installing Kernel Headers
 Installing the kernel headers via `apt-get install raspberrypi-kernel-headers` might work for you,
-for me it didn't. Therefore, we need to manually add them. 
+for me it didn't, because it always installed headers for a newer kernel version than what was actually present as a system.
+Therefore, we need to manually add them. 
 This can be achieved in two different ways.
 Either:
 - Manual Download: download the correct headers manually and create a sym-link to /lib/modules/KERNEL_VERSION/build
@@ -168,6 +176,7 @@ That script might fail though, when nexmon and nexmon_csi get updated, so doing 
 - Move into it. e.g. `cd brcmfmac_5.10.y-nexmon` (or your kernel version specific folder)
 - Open `Makefile` and add `dmi.o` to the `brcmfmac-objs list`, if not already there. If `dmi.c` does not exist in your drivers directory, then don't add this line.
 - Make nexmon_csi: `make ARCH=arm64 install-firmware`
+
 
 #### Alternative immediate shell commands:
 ```sh
